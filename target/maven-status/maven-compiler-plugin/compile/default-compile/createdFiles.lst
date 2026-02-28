@@ -1,1 +1,5 @@
 com/pharmacy/store/PharmacyApplication.class
+com/pharmacy/store/controller/ProductController.class
+com/pharmacy/store/service/ProductService.class
+com/pharmacy/store/model/Product.class
+com/pharmacy/store/repository/ProductRepository.class

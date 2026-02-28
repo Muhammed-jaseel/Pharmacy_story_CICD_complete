@@ -1,8 +1,8 @@
 pipeline {
   agent {
     docker {
-        image 'muhammedjaseel/pharmacy_app:v1'
-        args '--entrypoint=""'
+        image 'muhammedjaseel/pharmacy_app:v2'
+        args '-v /var/run/docker.sock:/var/run/docker.sock'
     }
 }
   stages {
