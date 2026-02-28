@@ -1,24 +1,32 @@
 pipeline {
-  agent {
-    docker {
-        image 'muhammedjaseel/pharmacy_app:v2'
-        args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+
+    agent {
+        docker {
+            image 'maven:3.9-eclipse-temurin-17'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
     }
-}
-  stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-      }
+
+    environment {
+        IMAGE_NAME = "muhammedjaseel/pharmacy_app"
+        IMAGE_TAG  = "v3"
     }
-    stage('Build and Test') {
-      steps {
-        sh 'ls -ltr'
-        // build the project and create a JAR file
-        sh 'mvn clean package -DskipTests'
-      }
-    }
-    stage('Static Code Analysis') {
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Static Code Analysis') {
       environment {
         SONAR_URL = "http://localhost:9000"
       }
@@ -28,10 +36,10 @@ pipeline {
         }
       }
     }
-    stage('Build and Push Docker Image') {
+        stage('Build and Push Docker Image') {
       environment {
         // Update username or image name as per your requirements
-        DOCKER_IMAGE = "muhammedjaseel/pharmacy_app:${BUILD_NUMBER}"
+        DOCKER_IMAGE = "muhammedjaseel/pharmacy_app:${IMAGE_TAG}"
         REGISTRY_CREDENTIALS = credentials('docker-cred')
       }
       steps {
@@ -44,28 +52,17 @@ pipeline {
         }
       }
     }
-    stage('Update Deployment File') {
-        environment {
-            GIT_REPO_NAME = "Pharmacy_story_CICD_complete"
-            GIT_USER_NAME = "Muhammed-jaseel"
-        }
-        steps {
-            withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+        stage('Run Container') {
+            steps {
                 sh '''
-                    git config user.email "your.email@example.com"
-                    git config user.name "Muhammed Jaseel"
-                    BUILD_NUMBER=${BUILD_NUMBER}
-                    
-                    # Uncomment and update the lines below if you have Kubernetes manifests to update
-                    # sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" Change/Deployment.yml
-                    # git add Change/Deployment.yml
-                    # git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                    # git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-                    
-                    echo "Placeholder: Update deployment file step completed."
+                docker stop pharmacy_app || true
+                docker rm pharmacy_app || true
+
+                docker run -d -p 4000:4040 \
+                --name pharmacy_app \
+                $IMAGE_NAME:$IMAGE_TAG
                 '''
             }
         }
     }
-  }
 }
